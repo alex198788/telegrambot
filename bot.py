@@ -62,14 +62,10 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         selected_price = "—"
 
     text = (
-        f"🏡 Участок выбран:
-"
-        f"📍 Этап: {stage.replace(' этап', '')}
-"
-        f"📐 Площадь: {size}
-"
-        f"💰 Цена: {selected_price}
-"
+        f"🏡 Участок выбран:\n"
+        f"📍 Этап: {stage.replace(' этап', '')}"
+        f"📐 Площадь: {size}"
+        f"💰 Цена: {selected_price}"
         f"🔌 Коммуникации: электричество, газ, вода, канализация"
     )
     keyboard = InlineKeyboardMarkup([
