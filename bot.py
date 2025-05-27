@@ -1,4 +1,4 @@
-from telegram import Update, InputFile, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler,
     filters, ContextTypes, ConversationHandler
@@ -11,7 +11,6 @@ SHOWING_PLOTS, CONTACT = range(2)
 
 PLOTS = [
     {
-        "photo": "plot1.jpg",
         "stage": "3 этап",
         "size": "6 соток",
         "price": "3 900 000 ₽",
@@ -30,34 +29,40 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     plot = PLOTS[index]
-    photo = InputFile(plot["photo"])
     caption = (
-        "📍 Этап: " + plot["stage"].replace(" этап", "") + "\n"
-        "📐 Площадь: " + plot["size"] + "\n"
-        "💰 Цена: " + plot["price"] + "\n"
-        "🔌 Коммуникации: " + plot["utilities"]
+        f"📍 Этап: {plot['stage'].replace(' этап', '')}
+"
+        f"📐 Площадь: {plot['size']}
+"
+        f"💰 Цена: {plot['price']}
+"
+        f"🔌 Коммуникации: {plot['utilities']}"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Выбрать", callback_data="select")],
         [InlineKeyboardButton("👤 Руководитель", url="https://t.me/+79624406464")]
     ])
-    await update.message.reply_photo(photo=photo, caption=caption, reply_markup=keyboard)
+    await update.message.reply_text(text=caption, reply_markup=keyboard)
     return SHOWING_PLOTS
 
 async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data["selected"] = PLOTS[0]
-    await query.edit_message_caption(caption="✅ Участок выбран. Пожалуйста, отправьте номер телефона или @username:")
+    await query.edit_message_text(text="✅ Участок выбран. Пожалуйста, отправьте номер телефона или @username:")
     return CONTACT
 
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
     plot = context.user_data.get("selected", PLOTS[0])
     msg = (
-        "📨 Заявка сохранена!\n"
-        "Участок: " + plot.get("stage", "") + ", " + plot.get("size", "") + ", " + plot.get("price", "") + "\n"
-        "Контакт: " + contact + "\n\n"
+        f"📨 Заявка сохранена!
+"
+        f"Участок: {plot.get('stage', '')}, {plot.get('size', '')}, {plot.get('price', '')}
+"
+        f"Контакт: {contact}
+
+"
         "Мы свяжемся с вами в ближайшее время 🙏"
     )
     await update.message.reply_text(msg)
