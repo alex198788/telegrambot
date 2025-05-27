@@ -99,11 +99,9 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
     plot_info = context.user_data.get("plot_info", "неизвестный участок")
     await update.message.reply_text(
-        f"📨 Заявка сохранена!
+        f"📨 Заявка сохранена!"
 Участок: {plot_info}
 Контакт: {contact}
-
-"
         "Мы свяжемся с вами в ближайшее время 🙏"
     )
     return ConversationHandler.END
