@@ -11,7 +11,7 @@ SHOWING_PLOTS, CONFIRM_PLOT, CONTACT = range(3)
 
 PLOTS = [
     {
-        "photo": "plot1.png",
+        "photo": "plot1.jpg",
         "stage": "3 этап",
         "size": "6 соток",
         "price": "3 900 000 ₽",
