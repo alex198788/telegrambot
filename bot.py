@@ -1,104 +1,107 @@
-from telegram import Update, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler,
-    filters, ConversationHandler, ContextTypes
+    ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
+    filters, ContextTypes, ConversationHandler
 )
 import os
 
 TOKEN = os.getenv("TOKEN")
 
-CHOOSING, PLOT_SIZE, PLOT_BUDGET, PLOT_LOCATION, PLOT_CONTACT = range(5)
+# Состояния диалога
+CHOOSING_STAGE, CHOOSING_PLOT, CONTACT = range(3)
 
+# Участки (предложения)
 OFFERS = [
-    {"location": "3 этап", "size": "6 соток", "price": "3 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "5 этап", "size": "4.9 сотки", "price": "3 185 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "6 этап", "size": "4.75 сотки", "price": "3 087 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "4 этап", "size": "5.5 соток", "price": "2 200 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "4 этап", "size": "6 соток", "price": "2 400 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "коммерция", "size": "20 соток", "price": "10 000 000 ₽", "utilities": "Электр., газ, вода, канализация"},
-    {"location": "под мкд", "size": "75 соток", "price": "37 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "3 этап", "size": "6 соток", "price": "3 900 000 ₽"},
+    {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽"},
+    {"location": "5 этап", "size": "4.9 сотки", "price": "3 185 000 ₽"},
+    {"location": "6 этап", "size": "4.75 сотки", "price": "3 087 000 ₽"},
+    {"location": "4 этап", "size": "5.5 соток", "price": "2 200 000 ₽"},
+    {"location": "4 этап", "size": "6 соток", "price": "2 400 000 ₽"},
+    {"location": "коммерция", "size": "20 соток", "price": "10 000 000 ₽"},
+    {"location": "под мкд", "size": "75 соток", "price": "37 900 000 ₽"},
 ]
 
-start_keyboard = [["📋 Получить подборку"]]
-location_keyboard = [
-    ["3 этап", "4 этап"],
-    ["5 этап", "6 этап"],
-    ["Коммерция", "Под МКД"]
-]
-
-markup_start = ReplyKeyboardMarkup(start_keyboard, one_time_keyboard=True, resize_keyboard=True)
-markup_location = ReplyKeyboardMarkup(location_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
+# Стартовая команда
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("3 этап", callback_data="3 этап"),
+         InlineKeyboardButton("4 этап", callback_data="4 этап")],
+        [InlineKeyboardButton("5 этап", callback_data="5 этап"),
+         InlineKeyboardButton("6 этап", callback_data="6 этап")],
+        [InlineKeyboardButton("Коммерция", callback_data="коммерция"),
+         InlineKeyboardButton("Под МКД", callback_data="под мкд")]
+    ]
     await update.message.reply_text(
-        "👋 Добрый день! Что вы хотите сделать?",
-        reply_markup=markup_start
+        "📍 Выберите этап или категорию участков:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    return CHOOSING
+    return CHOOSING_STAGE
 
-async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    if "подборку" in text.lower():
-        await update.message.reply_text("Введите желаемую площадь участка (в сотках):")
-        return PLOT_SIZE
-    else:
-        await update.message.reply_text("Выберите действие с клавиатуры.")
-        return CHOOSING
+# Показ участков
+async def show_plots(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    stage = query.data
+    context.user_data["stage"] = stage
 
-async def plot_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["plot_size"] = update.message.text
-    await update.message.reply_text("Какой у вас бюджет? (в рублях)")
-    return PLOT_BUDGET
+    matched = [o for o in OFFERS if o["location"] == stage]
+    if not matched:
+        await query.edit_message_text("😔 Участков на этом этапе пока нет.")
+        return ConversationHandler.END
 
-async def plot_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["plot_budget"] = update.message.text
-    await update.message.reply_text("Выберите район или категорию участка:", reply_markup=markup_location)
-    return PLOT_LOCATION
+    keyboard = [
+        [InlineKeyboardButton(f"{o['size']} — {o['price']}", callback_data=f"{o['size']}|{o['price']}")]
+        for o in matched
+    ]
 
-async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    location = update.message.text.strip().lower()
-    context.user_data["plot_location"] = location
+    await query.edit_message_text(
+        f"📋 Участки на {stage}:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return CHOOSING_PLOT
 
-    matched_offers = [o for o in OFFERS if o["location"].lower() in location]
+# Подтверждение выбора участка
+async def confirm_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    size, price = query.data.split("|")
+    stage = context.user_data.get("stage", "неизвестно")
 
-    if matched_offers:
-        response = "Вот что мы можем вам предложить:"
-        for offer in matched_offers:
-            response += (
-                f"🏷 Участок {offer['size']}"
-                f"📍 Район: {offer['location']}"
-                f"💰 {offer['price']}"
-                f"🔌 Коммуникации: {offer['utilities']}"
-            )
-    else:
-        response = "😔 Пока нет участков в этом районе или категории. Мы постараемся подобрать для вас подходящий вариант!"
+    context.user_data["plot_info"] = f"{stage}, {size}, {price}"
 
-    await update.message.reply_text(response)
-    await update.message.reply_text("Оставьте, пожалуйста, номер телефона или @username для связи:")
-    return PLOT_CONTACT
+    await query.edit_message_text(
+        f"✅ Вы выбрали участок {size} на {stage} за {price}.\n\n"
+        "Пожалуйста, отправьте номер телефона или @username для связи:"
+    )
+    return CONTACT
 
-async def plot_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["plot_contact"] = update.message.text
-    await update.message.reply_text("✅ Спасибо! Мы свяжемся с вами в ближайшее время 🙏")
+# Обработка контакта
+async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    contact = update.message.text
+    plot_info = context.user_data.get("plot_info", "неизвестно")
+    await update.message.reply_text(
+        f"📨 Заявка сохранена!\nУчасток: {plot_info}\nКонтакт: {contact}\n\n"
+        "Мы свяжемся с вами в ближайшее время 🙏"
+    )
     return ConversationHandler.END
 
+# Отмена
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Диалог отменён.")
     return ConversationHandler.END
 
+# Запуск бота
 app = ApplicationBuilder().token(TOKEN).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
-        CHOOSING: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose)],
-        PLOT_SIZE: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_size)],
-        PLOT_BUDGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_budget)],
-        PLOT_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_location)],
-        PLOT_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_contact)],
+        CHOOSING_STAGE: [CallbackQueryHandler(show_plots)],
+        CHOOSING_PLOT: [CallbackQueryHandler(confirm_plot)],
+        CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_contact)]
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
+    fallbacks=[CommandHandler("cancel", cancel)]
 )
 
 app.add_handler(conv_handler)
