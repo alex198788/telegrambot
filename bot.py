@@ -43,7 +43,7 @@ async def choose_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(size, callback_data=size)] for size in sizes]
     keyboard.append([InlineKeyboardButton("◀ Назад", callback_data="back_to_start")])
     await query.edit_message_text(
-        f"Вы выбрали: {stage}")Теперь выберите площадь:", 
+        f"Вы выбрали: {stage}\nТеперь выберите площадь:", 
     reply_markup=InlineKeyboardMarkup(keyboard)
 )
     return CHOOSE_SIZE
