@@ -1,9 +1,8 @@
-from telegram import Update, InputFile
+from telegram import Update, InputFile, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, ContextTypes,
-    CallbackQueryHandler, MessageHandler, ConversationHandler, filters
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler,
+    filters, ContextTypes, ConversationHandler
 )
-from telegram.ext.webhook import WebhookServer
 import os
 
 TOKEN = os.getenv("TOKEN")
@@ -41,12 +40,19 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💰 Цена: " + plot["price"] + "\n"
         "🔌 Коммуникации: " + plot["utilities"]
     )
-    keyboard = [
-        [{"text": "✅ Выбрать", "callback_data": "select"}],
-        [{"text": "👤 Руководитель", "url": "https://t.me/+79624406464"}]
-    ]
-    await update.message.reply_photo(photo=photo, caption=caption)
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Выбрать", callback_data="select")],
+        [InlineKeyboardButton("👤 Руководитель", url="https://t.me/+79624406464")]
+    ])
+    await update.message.reply_photo(photo=photo, caption=caption, reply_markup=keyboard)
     return SHOWING_PLOTS
+
+async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data["selected"] = PLOTS[0]
+    await query.edit_message_caption(caption="✅ Участок выбран. Пожалуйста, отправьте номер телефона или @username:")
+    return CONTACT
 
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
@@ -68,7 +74,7 @@ app = ApplicationBuilder().token(TOKEN).build()
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
-        SHOWING_PLOTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
+        SHOWING_PLOTS: [CallbackQueryHandler(handle_action)],
         CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
     },
     fallbacks=[]
@@ -86,3 +92,4 @@ if __name__ == "__main__":
         url_path=WEBHOOK_PATH,
         webhook_url=WEBHOOK_URL
     )
+
