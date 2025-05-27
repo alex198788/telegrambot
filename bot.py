@@ -63,7 +63,6 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"🏡 Участок выбран:
-
 "
         f"📍 Этап: {stage.replace(' этап', '')}
 "
