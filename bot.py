@@ -7,10 +7,10 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-# Состояния
+# States
 CHOOSING, PLOT_SIZE, PLOT_BUDGET, PLOT_LOCATION, PLOT_CONTACT = range(5)
 
-# Список участков
+# Offer list
 OFFERS = [
     {"location": "3 этап", "size": "6 соток", "price": "3 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
     {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽", "utilities": "Электр., газ, вода, канализация"},
@@ -22,14 +22,21 @@ OFFERS = [
     {"location": "под мкд", "size": "75 соток", "price": "37 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
 ]
 
-# Клавиатура
-reply_keyboard = [["📋 Получить подборку"]]
-markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
+# Keyboards
+start_keyboard = [["📋 Получить подборку"]]
+location_keyboard = [
+    ["3 этап", "4 этап"],
+    ["5 этап", "6 этап"],
+    ["Коммерция", "Под МКД"]
+]
+
+markup_start = ReplyKeyboardMarkup(start_keyboard, one_time_keyboard=True, resize_keyboard=True)
+markup_location = ReplyKeyboardMarkup(location_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Добрый день! Что вы хотите сделать?",
-        reply_markup=markup
+        reply_markup=markup_start
     )
     return CHOOSING
 
@@ -49,7 +56,7 @@ async def plot_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def plot_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_budget"] = update.message.text
-    await update.message.reply_text("Укажите район, категорию или направление (например: '3 этап', 'коммерция', 'под МКД'):")
+    await update.message.reply_text("Выберите район или категорию участка:", reply_markup=markup_location)
     return PLOT_LOCATION
 
 async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,7 +99,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Диалог отменён.")
     return ConversationHandler.END
 
-# Настройка приложения
+# App setup
 app = ApplicationBuilder().token(TOKEN).build()
 
 conv_handler = ConversationHandler(
