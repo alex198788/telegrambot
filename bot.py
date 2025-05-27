@@ -22,16 +22,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sorted_stages = sorted(PLOTS.keys(), key=lambda x: int(x.split()[0]) if x.split()[0].isdigit() else 999)
     keyboard = [[InlineKeyboardButton(stage, callback_data=stage)] for stage in sorted_stages]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
     welcome_text = (
         "👋 Добро пожаловать!
 
 "
         "Выберите участок:"
     )
+
     if update.message:
         await update.message.reply_text(welcome_text, reply_markup=reply_markup)
     elif update.callback_query:
         await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup)
+
     return CHOOSE_STAGE
 
 async def choose_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
