@@ -30,12 +30,9 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     plot = PLOTS[index]
     caption = (
-        f"📍 Этап: {plot['stage'].replace(' этап', '')}
-"
-        f"📐 Площадь: {plot['size']}
-"
-        f"💰 Цена: {plot['price']}
-"
+        f"📍 Этап: {plot['stage'].replace(' этап', '')}\n"
+        f"📐 Площадь: {plot['size']}\n"
+        f"💰 Цена: {plot['price']}\n"
         f"🔌 Коммуникации: {plot['utilities']}"
     )
     keyboard = InlineKeyboardMarkup([
@@ -56,13 +53,9 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
     plot = context.user_data.get("selected", PLOTS[0])
     msg = (
-        f"📨 Заявка сохранена!
-"
-        f"Участок: {plot.get('stage', '')}, {plot.get('size', '')}, {plot.get('price', '')}
-"
-        f"Контакт: {contact}
-
-"
+        f"📨 Заявка сохранена!\n"
+        f"Участок: {plot.get('stage', '')}, {plot.get('size', '')}, {plot.get('price', '')}\n"
+        f"Контакт: {contact}\n\n"
         "Мы свяжемся с вами в ближайшее время 🙏"
     )
     await update.message.reply_text(msg)
