@@ -6,9 +6,6 @@ from telegram.ext import (
 import os
 
 TOKEN = os.getenv("TOKEN")
-WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
-WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 SHOWING_PLOTS, CONTACT = range(2)
 
@@ -79,11 +76,4 @@ if __name__ == "__main__":
     )
 
     app.add_handler(conv_handler)
-
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 8443)),
-        url_path=WEBHOOK_PATH,
-        webhook_url=WEBHOOK_URL,
-        stop_signals=None
-    )
+    app.run_polling()
