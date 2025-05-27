@@ -4,6 +4,7 @@ from telegram.ext import (
     filters, ContextTypes, ConversationHandler
 )
 import os
+import asyncio
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
@@ -69,25 +70,26 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_webhook(app):
     await app.bot.set_webhook(WEBHOOK_URL)
 
-app = ApplicationBuilder().token(TOKEN).build()
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        SHOWING_PLOTS: [CallbackQueryHandler(handle_action)],
-        CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
-    },
-    fallbacks=[]
-)
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            SHOWING_PLOTS: [CallbackQueryHandler(handle_action)],
+            CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
+        },
+        fallbacks=[]
+    )
 
-app.add_handler(conv_handler)
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(set_webhook(app))
-    app.run_webhook(
+    app.add_handler(conv_handler)
+    await set_webhook(app)
+    await app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8443)),
         url_path=WEBHOOK_PATH,
         webhook_url=WEBHOOK_URL
     )
+
+if __name__ == "__main__":
+    asyncio.run(main())
