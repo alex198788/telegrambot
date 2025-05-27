@@ -24,11 +24,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     welcome_text = (
-        "👋 Добро пожаловать!\n\nВыберите участок:"
-
-"
-        "Выберите участок:"
-    )
+        "👋 Добро пожаловать!\n\nВыберите участок:",)
 
     if update.message:
         await update.message.reply_text(welcome_text, reply_markup=reply_markup)
