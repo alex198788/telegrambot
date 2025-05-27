@@ -7,28 +7,40 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-# Conversation states
+# Состояния
 CHOOSING, PLOT_SIZE, PLOT_BUDGET, PLOT_LOCATION, PLOT_CONTACT = range(5)
 
-# Reply keyboard
-reply_keyboard = [["🌿 Участок", "🏡 Дом"]]
+# Список участков
+OFFERS = [
+    {"location": "3 этап", "size": "6 соток", "price": "3 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "5 этап", "size": "4.9 сотки", "price": "3 185 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "6 этап", "size": "4.75 сотки", "price": "3 087 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "4 этап", "size": "5.5 соток", "price": "2 200 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "4 этап", "size": "6 соток", "price": "2 400 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "коммерция", "size": "20 соток", "price": "10 000 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+    {"location": "под мкд", "size": "75 соток", "price": "37 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
+]
+
+# Клавиатура
+reply_keyboard = [["📋 Получить подборку"]]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Добрый день! Вы ищете дом или участок?",
+        "👋 Добрый день! Что вы хотите сделать?",
         reply_markup=markup
     )
     return CHOOSING
 
 async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    choice = update.message.text
-    if choice == "🌿 Участок":
+    text = update.message.text
+    if "подборку" in text.lower():
         await update.message.reply_text("Введите желаемую площадь участка (в сотках):")
         return PLOT_SIZE
     else:
-        await update.message.reply_text("На данный момент доступны только участки 🌿")
-        return ConversationHandler.END
+        await update.message.reply_text("Выберите действие с клавиатуры.")
+        return CHOOSING
 
 async def plot_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_size"] = update.message.text
@@ -37,26 +49,35 @@ async def plot_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def plot_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_budget"] = update.message.text
-    await update.message.reply_text("Укажите желаемый район или населённый пункт:")
+    await update.message.reply_text("Укажите район, категорию или направление (например: '3 этап', 'коммерция', 'под МКД'):")
     return PLOT_LOCATION
 
 async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["plot_location"] = update.message.text
+    location = update.message.text.strip().lower()
+    context.user_data["plot_location"] = location
 
-    # Simulated offers
-    offers = """Вот что мы можем вам предложить:
+    matched_offers = [o for o in OFFERS if o["location"].lower() in location]
 
-🏷 Участок 10 соток
-📍 Село Александровское
-💰 950,000 ₽
-💡 Электричество, газ рядом
+    if matched_offers:
+        response = "Вот что мы можем вам предложить:
 
-🏷 Участок 12 соток
-📍 Село Надежда
-💰 1,150,000 ₽
-🌿 ИЖС, участок ровный
-"""
-    await update.message.reply_text(offers)
+"
+        for offer in matched_offers:
+            response += (
+                f"🏷 Участок {offer['size']}
+"
+                f"📍 Район: {offer['location']}
+"
+                f"💰 {offer['price']}
+"
+                f"🔌 Коммуникации: {offer['utilities']}
+
+"
+            )
+    else:
+        response = "😔 Пока нет участков в этом районе или категории. Мы постараемся подобрать для вас подходящий вариант!"
+
+    await update.message.reply_text(response)
     await update.message.reply_text("Оставьте, пожалуйста, номер телефона или @username для связи:")
     return PLOT_CONTACT
 
@@ -71,7 +92,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Диалог отменён.")
     return ConversationHandler.END
 
-# Initialize app
+# Настройка приложения
 app = ApplicationBuilder().token(TOKEN).build()
 
 conv_handler = ConversationHandler(
