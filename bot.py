@@ -6,7 +6,7 @@ from telegram.ext import (
 import os
 
 TOKEN = os.getenv("TOKEN")
-WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")  # Например: https://your-app.onrender.com
+WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
@@ -88,8 +88,6 @@ if __name__ == "__main__":
     app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8443)),
-        webhook_path=WEBHOOK_PATH,
         url_path=WEBHOOK_PATH,
         webhook_url=WEBHOOK_URL
     )
-
