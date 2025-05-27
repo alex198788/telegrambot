@@ -6,7 +6,7 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-CHOOSE_STAGE, CHOOSE_SIZE, SHOW_PRICE = range(3)
+CHOOSE_STAGE, CHOOSE_SIZE = range(2)
 
 PLOTS = {
     "3 этап": [("6 соток", "3 900 000 ₽")],
@@ -19,13 +19,19 @@ PLOTS = {
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(stage, callback_data=stage)] for stage in PLOTS]
+    sorted_stages = sorted(PLOTS.keys(), key=lambda x: int(x.split()[0]) if x.split()[0].isdigit() else 999)
+    keyboard = [[InlineKeyboardButton(stage, callback_data=stage)] for stage in sorted_stages]
     reply_markup = InlineKeyboardMarkup(keyboard)
     welcome_text = (
-        "👋 Добро пожаловать!\n\n"
+        "👋 Добро пожаловать!
+
+"
         "Выберите этап участка:"
     )
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    if update.message:
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup)
     return CHOOSE_STAGE
 
 async def choose_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,39 +43,39 @@ async def choose_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sizes = list({s for s, _ in PLOTS[stage]})
     keyboard = [[InlineKeyboardButton(size, callback_data=size)] for size in sizes]
     keyboard.append([InlineKeyboardButton("◀ Назад", callback_data="back_to_start")])
-    await query.edit_message_text(f"Вы выбрали: {stage}\n\nТеперь выберите площадь:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(f"Вы выбрали: {stage}
+
+Теперь выберите площадь:", reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSE_SIZE
 
-async def choose_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    stage = context.user_data["stage"]
     size = query.data
-    stage = context.user_data["stage"]
-    context.user_data["size"] = size
 
-    prices = [price for s, price in PLOTS[stage] if s == size]
-    keyboard = [[InlineKeyboardButton(price, callback_data="price_" + price)] for price in prices]
-    keyboard.append([InlineKeyboardButton("◀ Назад", callback_data="back_to_stage")])
-    await query.edit_message_text(f"Площадь: {size}\n\nВыберите цену:", reply_markup=InlineKeyboardMarkup(keyboard))
-    return SHOW_PRICE
-
-async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    stage = context.user_data["stage"]
-    size = context.user_data["size"]
-    price = query.data.replace("price_", "")
+    for s, price in PLOTS[stage]:
+        if s == size:
+            selected_price = price
+            break
+    else:
+        selected_price = "—"
 
     text = (
-        f"🏡 Участок выбран:\n\n"
-        f"📍 Этап: {stage.replace(' этап', '')}\n"
-        f"📐 Площадь: {size}\n"
-        f"💰 Цена: {price}\n"
+        f"🏡 Участок выбран:
+
+"
+        f"📍 Этап: {stage.replace(' этап', '')}
+"
+        f"📐 Площадь: {size}
+"
+        f"💰 Цена: {selected_price}
+"
         f"🔌 Коммуникации: электричество, газ, вода, канализация"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📲 Связаться с руководителем", url="https://t.me/+79624406464")],
-        [InlineKeyboardButton("◀ Назад", callback_data="back_to_size")]
+        [InlineKeyboardButton("◀ Назад", callback_data="back_to_stage")]
     ])
     await query.edit_message_text(text, reply_markup=keyboard)
     return ConversationHandler.END
@@ -81,8 +87,6 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await start(query, context)
     elif query.data == "back_to_stage":
         return await choose_stage(query, context)
-    elif query.data == "back_to_size":
-        return await choose_size(query, context)
 
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
@@ -90,9 +94,8 @@ if __name__ == "__main__":
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            CHOOSE_STAGE: [CallbackQueryHandler(choose_stage, pattern="^(?!back_to).*")],
-            CHOOSE_SIZE: [CallbackQueryHandler(choose_size, pattern="^(?!back_to).*")],
-            SHOW_PRICE: [CallbackQueryHandler(show_price, pattern="^price_")],
+            CHOOSE_STAGE: [CallbackQueryHandler(choose_stage, pattern="^(?!back_to_).*")],
+            CHOOSE_SIZE: [CallbackQueryHandler(show_plot, pattern="^(?!back_to_).*")],
         },
         fallbacks=[
             CallbackQueryHandler(go_back, pattern="^back_to_.*")
