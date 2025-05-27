@@ -1,13 +1,17 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InputFile
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler,
-    filters, ContextTypes, ConversationHandler
+    ApplicationBuilder, CommandHandler, ContextTypes,
+    CallbackQueryHandler, MessageHandler, ConversationHandler, filters
 )
+from telegram.ext.webhook import WebhookServer
 import os
 
 TOKEN = os.getenv("TOKEN")
+WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")  # Например: https://your-app.onrender.com
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
-SHOWING_PLOTS, CONFIRM_PLOT, CONTACT = range(3)
+SHOWING_PLOTS, CONTACT = range(2)
 
 PLOTS = [
     {
@@ -38,29 +42,15 @@ async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔌 Коммуникации: " + plot["utilities"]
     )
     keyboard = [
-        [InlineKeyboardButton("✅ Выбрать", callback_data="select")],
-        [InlineKeyboardButton("➡ Следующий", callback_data="next")],
-        [InlineKeyboardButton("👤 Руководитель", url="https://t.me/+79624406464")]
+        [{"text": "✅ Выбрать", "callback_data": "select"}],
+        [{"text": "👤 Руководитель", "url": "https://t.me/+79624406464"}]
     ]
-    await update.message.reply_photo(photo=photo, caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_photo(photo=photo, caption=caption)
     return SHOWING_PLOTS
-
-async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    index = context.user_data.get("index", 0)
-
-    if query.data == "next":
-        context.user_data["index"] = index + 1
-        return await show_plot(query, context)
-    elif query.data == "select":
-        context.user_data["selected"] = PLOTS[index]
-        await query.edit_message_caption(caption="✅ Участок выбран. Пожалуйста, отправьте номер телефона или @username:")
-        return CONTACT
 
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
-    plot = context.user_data.get("selected", {})
+    plot = context.user_data.get("selected", PLOTS[0])
     msg = (
         "📨 Заявка сохранена!\n"
         "Участок: " + plot.get("stage", "") + ", " + plot.get("size", "") + ", " + plot.get("price", "") + "\n"
@@ -70,20 +60,29 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
     return ConversationHandler.END
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Диалог отменён.")
-    return ConversationHandler.END
+async def set_webhook(app):
+    await app.bot.set_webhook(WEBHOOK_URL)
 
 app = ApplicationBuilder().token(TOKEN).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
-        SHOWING_PLOTS: [CallbackQueryHandler(handle_action)],
+        SHOWING_PLOTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
         CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
     },
-    fallbacks=[CommandHandler("cancel", cancel)]
+    fallbacks=[]
 )
 
 app.add_handler(conv_handler)
-app.run_polling()
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(set_webhook(app))
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 8443)),
+        webhook_path=WEBHOOK_PATH,
+        url_path=WEBHOOK_PATH,
+        webhook_url=WEBHOOK_URL
+    )
