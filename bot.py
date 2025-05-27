@@ -66,7 +66,7 @@ async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     matched_offers = [o for o in OFFERS if o["location"].lower() in location]
 
     if matched_offers:
-        response = "Вот что мы можем вам предложить:
+        response = "Вот что мы можем вам предложить:"
 
 "
         for offer in matched_offers:
