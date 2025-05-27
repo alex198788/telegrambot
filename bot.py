@@ -22,9 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(stage, callback_data=stage)] for stage in PLOTS]
     reply_markup = InlineKeyboardMarkup(keyboard)
     welcome_text = (
-        "👋 Добро пожаловать!
-
-"
+        "👋 Добро пожаловать!\n\n"
         "Выберите этап участка:"
     )
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
@@ -39,9 +37,7 @@ async def choose_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sizes = list({s for s, _ in PLOTS[stage]})
     keyboard = [[InlineKeyboardButton(size, callback_data=size)] for size in sizes]
     keyboard.append([InlineKeyboardButton("◀ Назад", callback_data="back_to_start")])
-    await query.edit_message_text(f"Вы выбрали: {stage}
-
-Теперь выберите площадь:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(f"Вы выбрали: {stage}\n\nТеперь выберите площадь:", reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSE_SIZE
 
 async def choose_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,9 +50,7 @@ async def choose_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prices = [price for s, price in PLOTS[stage] if s == size]
     keyboard = [[InlineKeyboardButton(price, callback_data="price_" + price)] for price in prices]
     keyboard.append([InlineKeyboardButton("◀ Назад", callback_data="back_to_stage")])
-    await query.edit_message_text(f"Площадь: {size}
-
-Выберите цену:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(f"Площадь: {size}\n\nВыберите цену:", reply_markup=InlineKeyboardMarkup(keyboard))
     return SHOW_PRICE
 
 async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -67,15 +61,10 @@ async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     price = query.data.replace("price_", "")
 
     text = (
-        f"🏡 Участок выбран:
-
-"
-        f"📍 Этап: {stage.replace(' этап', '')}
-"
-        f"📐 Площадь: {size}
-"
-        f"💰 Цена: {price}
-"
+        f"🏡 Участок выбран:\n\n"
+        f"📍 Этап: {stage.replace(' этап', '')}\n"
+        f"📐 Площадь: {size}\n"
+        f"💰 Цена: {price}\n"
         f"🔌 Коммуникации: электричество, газ, вода, канализация"
     )
     keyboard = InlineKeyboardMarkup([
