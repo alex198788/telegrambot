@@ -12,7 +12,7 @@ ASK_NAME = 1
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Здраствуйте! Как Вас зовут?")
+    await update.message.reply_text("👋 Привет! Как тебя зовут?")
     return ASK_NAME
 
 # Обработка имени
