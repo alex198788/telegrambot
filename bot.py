@@ -1,4 +1,3 @@
-CHOOSING, PLOT_SIZE, PLOT_BUDGET, HOUSE_ROOMS, HOUSE_FLOORS = range(5)
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -8,87 +7,84 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-# Состояния
-CHOOSING, PLOT_SIZE, PLOT_BUDGET, HOUSE_ROOMS, HOUSE_FLOORS = range(5)
+# Conversation states
+CHOOSING, PLOT_SIZE, PLOT_BUDGET, PLOT_LOCATION, PLOT_CONTACT = range(5)
 
-# Клавиатура выбора
-reply_keyboard = [["🏡 Дом", "🌿 Участок"]]
+# Reply keyboard
+reply_keyboard = [["🌿 Участок", "🏡 Дом"]]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
-# Старт
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Здравствуйте! Что вы ищете?",
+        "👋 Добрый день! Вы ищете дом или участок?",
         reply_markup=markup
     )
     return CHOOSING
 
-# Обработка выбора
 async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     choice = update.message.text
-    context.user_data["choice"] = choice
-
     if choice == "🌿 Участок":
         await update.message.reply_text("Введите желаемую площадь участка (в сотках):")
         return PLOT_SIZE
-    elif choice == "🏡 Дом":
-        await update.message.reply_text("Сколько комнат вы хотите?")
-        return HOUSE_ROOMS
     else:
-        await update.message.reply_text("Пожалуйста, выберите из меню.")
-        return CHOOSING
+        await update.message.reply_text("На данный момент доступны только участки 🌿")
+        return ConversationHandler.END
 
-# Участок: площадь
 async def plot_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_size"] = update.message.text
-    await update.message.reply_text("Какой у вас бюджет на участок? (в рублях)")
+    await update.message.reply_text("Какой у вас бюджет? (в рублях)")
     return PLOT_BUDGET
 
-# Участок: бюджет
 async def plot_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_budget"] = update.message.text
+    await update.message.reply_text("Укажите желаемый район или населённый пункт:")
+    return PLOT_LOCATION
+
+async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["plot_location"] = update.message.text
+
+    # Simulated offers
+    offers = """Вот что мы можем вам предложить:
+
+🏷 Участок 10 соток
+📍 Село Александровское
+💰 950,000 ₽
+💡 Электричество, газ рядом
+
+🏷 Участок 12 соток
+📍 Село Надежда
+💰 1,150,000 ₽
+🌿 ИЖС, участок ровный
+"""
+    await update.message.reply_text(offers)
+    await update.message.reply_text("Оставьте, пожалуйста, номер телефона или @username для связи:")
+    return PLOT_CONTACT
+
+async def plot_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["plot_contact"] = update.message.text
     await update.message.reply_text(
-        f"✅ Вы выбрали участок площадью {context.user_data['plot_size']} соток "
-        f"с бюджетом {context.user_data['plot_budget']} руб. Мы подберем варианты!"
+        "✅ Спасибо! Мы свяжемся с вами в ближайшее время 🙏"
     )
     return ConversationHandler.END
 
-# Дом: комнаты
-async def house_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["house_rooms"] = update.message.text
-    await update.message.reply_text("Сколько этажей вы хотите?")
-    return HOUSE_FLOORS
-
-# Дом: этажи
-async def house_floors(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["house_floors"] = update.message.text
-    await update.message.reply_text(
-        f"✅ Вы выбрали дом с {context.user_data['house_rooms']} комнатами "
-        f"и {context.user_data['house_floors']} этажами. Мы подберем предложения!"
-    )
-    return ConversationHandler.END
-
-# Отмена
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Диалог отменен.")
+    await update.message.reply_text("Диалог отменён.")
     return ConversationHandler.END
 
-# Создание приложения
+# Initialize app
 app = ApplicationBuilder().token(TOKEN).build()
 
-# Диалоговый обработчик
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
         CHOOSING: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose)],
         PLOT_SIZE: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_size)],
         PLOT_BUDGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_budget)],
-        HOUSE_ROOMS: [MessageHandler(filters.TEXT & ~filters.COMMAND, house_rooms)],
-        HOUSE_FLOORS: [MessageHandler(filters.TEXT & ~filters.COMMAND, house_floors)],
+        PLOT_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_location)],
+        PLOT_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, plot_contact)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
 app.add_handler(conv_handler)
 app.run_polling()
-
