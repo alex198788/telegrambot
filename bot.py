@@ -1,3 +1,4 @@
+CHOOSING, PLOT_SIZE, PLOT_BUDGET, HOUSE_ROOMS, HOUSE_FLOORS = range(5)
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
