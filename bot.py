@@ -1,110 +1,73 @@
-from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler,
-    filters, ConversationHandler, ContextTypes
+    filters, ContextTypes, ConversationHandler
 )
 import os
 
 TOKEN = os.getenv("TOKEN")
 
-CHOOSING_STAGE, CHOOSING_PLOT, CONTACT = range(3)
+SHOWING_PLOTS, CONFIRM_PLOT, CONTACT = range(3)
 
-OFFERS = [
-    # Добавлены коммуникации
-    {'location': '3 этап', 'size': '6 соток', 'price': '3 900 000 ₽', 'utilities': 'электричество, газ, вода, канализация'},
-    {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽"},
-    {"location": "5 этап", "size": "4.9 сотки", "price": "3 185 000 ₽"},
-    {"location": "6 этап", "size": "4.75 сотки", "price": "3 087 000 ₽"},
-    {"location": "4 этап", "size": "5.5 соток", "price": "2 200 000 ₽"},
-    {"location": "4 этап", "size": "6 соток", "price": "2 400 000 ₽"},
-    {"location": "коммерция", "size": "20 соток", "price": "10 000 000 ₽"},
-    {'location': 'под мкд', 'size': '75 соток', 'price': '37 900 000 ₽', 'utilities': 'электричество, газ, вода, канализация'},
+PLOTS = [
+    {
+        "photo": "plot1.png",
+        "stage": "3 этап",
+        "size": "6 соток",
+        "price": "3 900 000 ₽",
+        "utilities": "электричество, газ, вода, канализация"
+    }
 ]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("3 этап", callback_data="3 этап"),
-         InlineKeyboardButton("4 этап", callback_data="4 этап")],
-        [InlineKeyboardButton("5 этап", callback_data="5 этап"),
-         InlineKeyboardButton("6 этап", callback_data="6 этап")],
-        [InlineKeyboardButton("Коммерция", callback_data="коммерция"),
-         InlineKeyboardButton("Под МКД", callback_data="под мкд")]
-    ]
-    await update.message.reply_text(
-        "📍 Выберите этап или категорию участков:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return CHOOSING_STAGE
+    context.user_data["index"] = 0
+    return await show_plot(update, context)
 
-async def show_plots(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    stage = query.data
-    context.user_data["stage"] = stage
-
-    matched = [o for o in OFFERS if o["location"] == stage]
-    if not matched:
-        await query.edit_message_text("😔 Участков на этом этапе пока нет.")
+async def show_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    index = context.user_data.get("index", 0)
+    if index >= len(PLOTS):
+        await update.message.reply_text("🏁 Участки закончились.")
         return ConversationHandler.END
 
-    keyboard = [
-        [InlineKeyboardButton(f"{o['size']} — {o['price']}", callback_data=f"{o['size']}|{o['price']}")]
-        for o in matched
-    ]
-    keyboard.append([
-        InlineKeyboardButton("🔄 Смотреть ещё", callback_data="more"),
-        InlineKeyboardButton("🔙 Назад", callback_data="back")
-    ])
-    keyboard.append([
-        InlineKeyboardButton("👤 Связаться с руководителем", url="https://t.me/+79624406464")
-    ])
-
-    await query.edit_message_text(
-        f"📋 Участки на {stage}:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+    plot = PLOTS[index]
+    photo = InputFile(plot["photo"])
+    caption = (
+        "📍 Этап: " + plot["stage"].replace(" этап", "") + "\n"
+        "📐 Площадь: " + plot["size"] + "\n"
+        "💰 Цена: " + plot["price"] + "\n"
+        "🔌 Коммуникации: " + plot["utilities"]
     )
-    return CHOOSING_PLOT
+    keyboard = [
+        [InlineKeyboardButton("✅ Выбрать", callback_data="select")],
+        [InlineKeyboardButton("➡ Следующий", callback_data="next")],
+        [InlineKeyboardButton("👤 Руководитель", url="https://t.me/+79624406464")]
+    ]
+    await update.message.reply_photo(photo=photo, caption=caption, reply_markup=InlineKeyboardMarkup(keyboard))
+    return SHOWING_PLOTS
 
-async def more_plots(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stage = context.user_data.get("stage", "")
-    fake_query = update.callback_query
-    fake_query.data = stage
-    return await show_plots(update, context)
-
-async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    return await start(update.callback_query, context)
-
-async def confirm_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data == "more":
-        return await more_plots(update, context)
-    elif query.data == "back":
-        return await go_back(update, context)
+    index = context.user_data.get("index", 0)
 
-    size, price = query.data.split("|")
-    stage = context.user_data.get("stage", "неизвестный этап")
-    context.user_data["plot_info"] = f"{stage}, {size}, {price}"
+    if query.data == "next":
+        context.user_data["index"] = index + 1
+        return await show_plot(query, context)
+    elif query.data == "select":
+        context.user_data["selected"] = PLOTS[index]
+        await query.edit_message_caption(caption="✅ Участок выбран. Пожалуйста, отправьте номер телефона или @username:")
+        return CONTACT
 
-    await query.edit_message_text(
-        f"✅ Вы выбрали участок {size} на {stage} за {price}."
-        "Пожалуйста, отправьте номер телефона или @username для связи:"
-    )
-    return CONTACT
-
-async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
-    plot_info = context.user_data.get("plot_info", "неизвестный участок")
-    await update.message.reply_text(
-        f"📨 Заявка сохранена!"
-    )
-Участок: {plot_info}
-f"Контакт: {contact}"
+    plot = context.user_data.get("selected", {})
+    msg = (
+        "📨 Заявка сохранена!\n"
+        "Участок: " + plot.get("stage", "") + ", " + plot.get("size", "") + ", " + plot.get("price", "") + "\n"
+        "Контакт: " + contact + "\n\n"
         "Мы свяжемся с вами в ближайшее время 🙏"
     )
+    await update.message.reply_text(msg)
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -116,9 +79,8 @@ app = ApplicationBuilder().token(TOKEN).build()
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
-        CHOOSING_STAGE: [CallbackQueryHandler(show_plots)],
-        CHOOSING_PLOT: [CallbackQueryHandler(confirm_plot)],
-        CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_contact)]
+        SHOWING_PLOTS: [CallbackQueryHandler(handle_action)],
+        CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact)],
     },
     fallbacks=[CommandHandler("cancel", cancel)]
 )
