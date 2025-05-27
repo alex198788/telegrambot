@@ -7,10 +7,8 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-# States
 CHOOSING, PLOT_SIZE, PLOT_BUDGET, PLOT_LOCATION, PLOT_CONTACT = range(5)
 
-# Offer list
 OFFERS = [
     {"location": "3 этап", "size": "6 соток", "price": "3 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
     {"location": "2 этап", "size": "6.92 сотки", "price": "4 498 000 ₽", "utilities": "Электр., газ, вода, канализация"},
@@ -22,7 +20,6 @@ OFFERS = [
     {"location": "под мкд", "size": "75 соток", "price": "37 900 000 ₽", "utilities": "Электр., газ, вода, канализация"},
 ]
 
-# Keyboards
 start_keyboard = [["📋 Получить подборку"]]
 location_keyboard = [
     ["3 этап", "4 этап"],
@@ -67,19 +64,12 @@ async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if matched_offers:
         response = "Вот что мы можем вам предложить:"
-
-"
         for offer in matched_offers:
             response += (
-                f"🏷 Участок {offer['size']}
-"
-                f"📍 Район: {offer['location']}
-"
-                f"💰 {offer['price']}
-"
-                f"🔌 Коммуникации: {offer['utilities']}
-
-"
+                f"🏷 Участок {offer['size']}"
+                f"📍 Район: {offer['location']}"
+                f"💰 {offer['price']}"
+                f"🔌 Коммуникации: {offer['utilities']}"
             )
     else:
         response = "😔 Пока нет участков в этом районе или категории. Мы постараемся подобрать для вас подходящий вариант!"
@@ -90,16 +80,13 @@ async def plot_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def plot_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_contact"] = update.message.text
-    await update.message.reply_text(
-        "✅ Спасибо! Мы свяжемся с вами в ближайшее время 🙏"
-    )
+    await update.message.reply_text("✅ Спасибо! Мы свяжемся с вами в ближайшее время 🙏")
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Диалог отменён.")
     return ConversationHandler.END
 
-# App setup
 app = ApplicationBuilder().token(TOKEN).build()
 
 conv_handler = ConversationHandler(
