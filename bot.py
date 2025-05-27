@@ -103,7 +103,6 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 Участок: {plot_info}
 f"Контакт: {contact}"
-)
         "Мы свяжемся с вами в ближайшее время 🙏"
     )
     return ConversationHandler.END
