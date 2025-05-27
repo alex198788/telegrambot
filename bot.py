@@ -26,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👋 Добро пожаловать!
 
 "
-        "Выберите этап участка:"
+        "Выберите участок:"
     )
     if update.message:
         await update.message.reply_text(welcome_text, reply_markup=reply_markup)
