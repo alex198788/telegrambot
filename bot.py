@@ -4,7 +4,6 @@ from telegram.ext import (
     filters, ContextTypes, ConversationHandler
 )
 import os
-import asyncio
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
@@ -67,10 +66,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
     return ConversationHandler.END
 
-async def set_webhook(app):
-    await app.bot.set_webhook(WEBHOOK_URL)
-
-async def main():
+if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
 
     conv_handler = ConversationHandler(
@@ -83,13 +79,11 @@ async def main():
     )
 
     app.add_handler(conv_handler)
-    await set_webhook(app)
-    await app.run_webhook(
+
+    app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8443)),
         url_path=WEBHOOK_PATH,
-        webhook_url=WEBHOOK_URL
+        webhook_url=WEBHOOK_URL,
+        stop_signals=None
     )
-
-if __name__ == "__main__":
-    asyncio.run(main())
