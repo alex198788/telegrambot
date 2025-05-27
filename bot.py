@@ -90,9 +90,7 @@ async def confirm_plot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["plot_info"] = f"{stage}, {size}, {price}"
 
     await query.edit_message_text(
-        f"✅ Вы выбрали участок {size} на {stage} за {price}.
-
-"
+        f"✅ Вы выбрали участок {size} на {stage} за {price}."
         "Пожалуйста, отправьте номер телефона или @username для связи:"
     )
     return CONTACT
